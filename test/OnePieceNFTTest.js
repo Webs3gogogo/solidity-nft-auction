@@ -30,6 +30,7 @@ describe("OnePieceNFT", function () {
     const tokenURI = ZORO_JSON_CID;
     const tx = await onePieceNFT.mintNFT(owner.address, tokenURI);
     await tx.wait();
+    console.log("NFT Address:", tx);
     // 检查NFT是否成功铸造
     expect(await onePieceNFT.ownerOf(0)).to.equal(owner.address);
     expect(await onePieceNFT.nextTokenId()).to.equal(1);
