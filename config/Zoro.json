@@ -1,0 +1,15 @@
+{
+    "description": "A beautiful wallpaper of Roronoa Zoro",
+    "image": "https://ipfs.io/ipfs/bafkreiaq4vbghjlslmkw2feuyhcezuhsrori545vpol5hz4hfs7te2ra5e",
+    "name": "Roronoa Zoro",
+    "attributes": [
+        {
+            "trait_type": "Role",
+            "value": "Roronoa Zoro"
+        },
+        {
+            "trait_type": "Rarity",
+            "value": "Relic"
+        }
+    ]
+}
