@@ -1,8 +1,7 @@
 const { expect } = require("chai");
 const { ethers,upgrades} = require("hardhat");
-const {  } = require('@openzeppelin/hardhat-upgrades');
 const ZORO_JSON_CID = "bafkreic65r34quampjfso5txnch4rezmpznhefuor3va773iftgt3sdeqa"
-describe("NFTAuctionFactory Contract", function () {
+describe("NFTAuctionFactoryUUPS Contract", function () {
     let onePieceNFT, nftAuctionFactory
     let nftAddress, nftTokenId, factoryAddress ,auctionAdd
     let owner
@@ -24,15 +23,15 @@ describe("NFTAuctionFactory Contract", function () {
 
 
        // Deploy NFTAuction implementation
-       const NFTAuction = await ethers.getContractFactory("NFTAuction");
+       const NFTAuction = await ethers.getContractFactory("NFTAuctionUUPS");
        nftAuctionImplementation = await NFTAuction.deploy();
        await nftAuctionImplementation.waitForDeployment();
 
        // Deploy NFTAuctionFactory with implementation address
-       const NFTAuctionFactory = await ethers.getContractFactory("NFTAuctionFactory");
+       const NFTAuctionFactory = await ethers.getContractFactory("NFTAuctionFactoryUUPS");
        nftAuctionFactory = await upgrades.deployProxy(NFTAuctionFactory, [
            await nftAuctionImplementation.getAddress()
-       ], { initializer: 'initialize' });
+       ], { initializer: 'initialize' ,kind: 'uups'  });
        await nftAuctionFactory.waitForDeployment();
 
        factoryAddress = await nftAuctionFactory.getAddress();
@@ -71,7 +70,7 @@ describe("NFTAuctionFactory Contract", function () {
         
         const bidAmount = ethers.parseEther("1.0");
         // 获取合约对象
-        const auction = await ethers.getContractAt("NFTAuction", auctionAddress, owner);
+        const auction = await ethers.getContractAt("NFTAuctionUUPS", auctionAddress, owner);
         const tx = await auction.placeBid(bidAmount, { value: bidAmount });
         const receipt = await tx.wait();
         console.log("Bid placed successfully");

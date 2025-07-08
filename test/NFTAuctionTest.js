@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-
+require('@openzeppelin/hardhat-upgrades');
 describe("NFTAuction Contract", function () {
     let NFTAuction;
     let nftAuction;
@@ -11,8 +11,8 @@ describe("NFTAuction Contract", function () {
     beforeEach(async function () {
         NFTAuction = await ethers.getContractFactory("NFTAuction");
         [owner, addr1, addr2] = await ethers.getSigners();
-        nftAuction = await NFTAuction.deploy();
-        await nftAuction.deployed();
+        nftAuction = await upgrades.deployProxy(NFTAuction, [], { initializer: 'initialize' });
+        await nftAuction.waitForDeployment();
     });
 
     it("should create an auction", async function () {

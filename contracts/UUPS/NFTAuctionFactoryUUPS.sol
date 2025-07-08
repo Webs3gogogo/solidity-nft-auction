@@ -3,16 +3,21 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "./NFTAuction.sol";
-import "./OnePieceNFT.sol";
+// 支持UUPS
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "./NFTAuctionUUPS.sol";
+import "../OnePieceNFT.sol";
 
-contract NFTAuctionFactory is Initializable {
+contract NFTAuctionFactoryUUPS is Initializable,UUPSUpgradeable, OwnableUpgradeable {
     address[] public auctions;
-    mapping(address => mapping(uint256 => NFTAuction)) public tokenIdToAddress;
+    mapping(address => mapping(uint256 => NFTAuctionUUPS)) public tokenIdToAddress;
 
     uint256 public nextAuctionId;
     address public nftAuctionImplementation;
+
     function initialize(address _nftAuctionImplementation) public initializer {
+        __Ownable_init(msg.sender);
          nftAuctionImplementation = _nftAuctionImplementation;
     }
 
@@ -21,7 +26,7 @@ contract NFTAuctionFactory is Initializable {
         uint256 _nftTokenId,
         uint256 _reservePrice,
         uint256 _duration,
-        NFTAuction.PaymentCurrency _paymentCurrency,
+        NFTAuctionUUPS.PaymentCurrency _paymentCurrency,
         address _erc20Token
     ) public returns (address) {
         require(_reservePrice > 0, "Reserve price must be greater than zero");
@@ -37,11 +42,11 @@ contract NFTAuctionFactory is Initializable {
         );
 
         // Check if auction already exists for this NFT
-        NFTAuction existingAuction = tokenIdToAddress[_nftAddress][_nftTokenId];
+        NFTAuctionUUPS existingAuction = tokenIdToAddress[_nftAddress][_nftTokenId];
         require(
             address(existingAuction) == address(0) ||
                 existingAuction.auctionStatus() !=
-                NFTAuction.AuctionStatus.OPEN,
+                NFTAuctionUUPS.AuctionStatus.OPEN,
             "Auction for this NFT already exists"
         );
 
@@ -62,7 +67,7 @@ contract NFTAuctionFactory is Initializable {
              address auctionProxy = Clones.clone(nftAuctionImplementation);
         
         // 初始化代理合约
-        NFTAuction(auctionProxy).initialize(
+        NFTAuctionUUPS(auctionProxy).initialize(
             _nftTokenId,
             _nftAddress,
             msg.sender,
@@ -74,15 +79,15 @@ contract NFTAuctionFactory is Initializable {
         );
 
         auctions.push(auctionProxy);
-        tokenIdToAddress[_nftAddress][_nftTokenId] = NFTAuction(auctionProxy);
+        tokenIdToAddress[_nftAddress][_nftTokenId] = NFTAuctionUUPS(auctionProxy);
         
         return auctionProxy;
     }
 
     function closeAuction(address _nftAddress, uint256 _nftTokenId) public {
-        NFTAuction auction = tokenIdToAddress[_nftAddress][_nftTokenId];
+        NFTAuctionUUPS auction = tokenIdToAddress[_nftAddress][_nftTokenId];
         require(
-            auction.auctionStatus() == NFTAuction.AuctionStatus.OPEN,
+            auction.auctionStatus() == NFTAuctionUUPS.AuctionStatus.OPEN,
             "Auction is not open"
         );
         require(
@@ -106,4 +111,8 @@ contract NFTAuctionFactory is Initializable {
     function getAuctionsCount() external view returns (uint256) {
         return auctions.length;
     }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 }
