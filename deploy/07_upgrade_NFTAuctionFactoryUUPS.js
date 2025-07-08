@@ -8,7 +8,7 @@ module.exports = async function () {
   }
 
   // 新的实现合约工厂（如升级为 V2 版本）
-  const NFTAuctionFactoryUUPS_V2 = await ethers.getContractFactory("UUPS/NFTAuctionFactoryUUPS");
+  const NFTAuctionFactoryUUPS_V2 = await ethers.getContractFactory("NFTAuctionFactoryUUPSV2");
 
   // 执行升级
   const upgraded = await upgrades.upgradeProxy(proxyAddress, NFTAuctionFactoryUUPS_V2);

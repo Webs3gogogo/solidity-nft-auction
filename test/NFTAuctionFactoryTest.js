@@ -92,6 +92,20 @@ describe("NFTAuctionFactory Contract", function () {
     });
 
 
+    it("upgrade NFTAuctionFactory", async function () {
+        // 获取V2工厂
+        const NFTAuctionFactoryV2 = await ethers.getContractFactory("NFTAuctionFactoryV2");
+        // 升级
+        const upgraded = await upgrades.upgradeProxy(nftAuctionFactory, NFTAuctionFactoryV2);
+        await upgraded.waitForDeployment();
+
+        // 升级后地址不变
+        expect(await upgraded.getAddress()).to.equal(await nftAuctionFactory.getAddress());
+
+        // 新增功能可用
+        expect(await upgraded.testUpgrade()).to.equal("success");
+    });
+
 
 
 

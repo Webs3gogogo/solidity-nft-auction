@@ -6,14 +6,15 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./NFTAuction.sol";
 import "./OnePieceNFT.sol";
 
-contract NFTAuctionFactory is Initializable {
+contract NFTAuctionFactoryV2 is Initializable {
     address[] public auctions;
     mapping(address => mapping(uint256 => NFTAuction)) public tokenIdToAddress;
 
     uint256 public nextAuctionId;
     address public nftAuctionImplementation;
+
     function initialize(address _nftAuctionImplementation) public initializer {
-         nftAuctionImplementation = _nftAuctionImplementation;
+        nftAuctionImplementation = _nftAuctionImplementation;
     }
 
     function createAuction(
@@ -60,7 +61,7 @@ contract NFTAuctionFactory is Initializable {
         // return address(auction);
 
         address auctionProxy = Clones.clone(nftAuctionImplementation);
-        
+
         // 初始化代理合约
         NFTAuction(auctionProxy).initialize(
             _nftTokenId,
@@ -75,7 +76,7 @@ contract NFTAuctionFactory is Initializable {
 
         auctions.push(auctionProxy);
         tokenIdToAddress[_nftAddress][_nftTokenId] = NFTAuction(auctionProxy);
-        
+
         return auctionProxy;
     }
 
@@ -105,5 +106,9 @@ contract NFTAuctionFactory is Initializable {
 
     function getAuctionsCount() external view returns (uint256) {
         return auctions.length;
+    }
+
+    function testUpgrade() public pure returns (string memory) {
+        return "success";
     }
 }
