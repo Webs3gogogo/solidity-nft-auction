@@ -6,19 +6,22 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 // 支持UUPS
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./NFTAuctionUUPS.sol";
-import "../OnePieceNFT.sol";
+import "./NFTAuction.sol";
+import "./OnePieceNFT.sol";
 
-contract NFTAuctionFactoryUUPS is Initializable,UUPSUpgradeable, OwnableUpgradeable {
+contract NFTAuctionFactoryUUPS is
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable
+{
     address[] public auctions;
-    mapping(address => mapping(uint256 => NFTAuctionUUPS)) public tokenIdToAddress;
+    mapping(address => mapping(uint256 => NFTAuction)) public tokenIdToAddress;
 
     uint256 public nextAuctionId;
-    address public nftAuctionImplementation;
+  
 
-    function initialize(address _nftAuctionImplementation) public initializer {
+    function initialize() public initializer {
         __Ownable_init(msg.sender);
-         nftAuctionImplementation = _nftAuctionImplementation;
     }
 
     function createAuction(
@@ -26,8 +29,9 @@ contract NFTAuctionFactoryUUPS is Initializable,UUPSUpgradeable, OwnableUpgradea
         uint256 _nftTokenId,
         uint256 _reservePrice,
         uint256 _duration,
-        NFTAuctionUUPS.PaymentCurrency _paymentCurrency,
-        address _erc20Token
+        NFTAuction.PaymentCurrency _paymentCurrency,
+        address _erc20Token,
+        address _nftAuctionBeaconProxyAddress
     ) public returns (address) {
         require(_reservePrice > 0, "Reserve price must be greater than zero");
         require(
@@ -42,32 +46,16 @@ contract NFTAuctionFactoryUUPS is Initializable,UUPSUpgradeable, OwnableUpgradea
         );
 
         // Check if auction already exists for this NFT
-        NFTAuctionUUPS existingAuction = tokenIdToAddress[_nftAddress][_nftTokenId];
+        NFTAuction existingAuction = tokenIdToAddress[_nftAddress][_nftTokenId];
         require(
             address(existingAuction) == address(0) ||
                 existingAuction.auctionStatus() !=
-                NFTAuctionUUPS.AuctionStatus.OPEN,
+                NFTAuction.AuctionStatus.OPEN,
             "Auction for this NFT already exists"
         );
 
-        // NFTAuction auction = new NFTAuction(
-        //     _nftTokenId,
-        //     _nftAddress,
-        //     msg.sender,
-        //     _duration, // 24 hours
-        //     _reservePrice,
-        //     _paymentCurrency,
-        //     _erc20Token,
-        //     address(this)
-        // );
-        // auctions.push(address(auction));
-        // tokenIdToAddress[_nftAddress][_nftTokenId] = auction;
-        // return address(auction);
-
-             address auctionProxy = Clones.clone(nftAuctionImplementation);
-        
         // 初始化代理合约
-        NFTAuctionUUPS(auctionProxy).initialize(
+        NFTAuction(_nftAuctionBeaconProxyAddress).setData(
             _nftTokenId,
             _nftAddress,
             msg.sender,
@@ -78,16 +66,16 @@ contract NFTAuctionFactoryUUPS is Initializable,UUPSUpgradeable, OwnableUpgradea
             address(this)
         );
 
-        auctions.push(auctionProxy);
-        tokenIdToAddress[_nftAddress][_nftTokenId] = NFTAuctionUUPS(auctionProxy);
-        
-        return auctionProxy;
+        auctions.push(_nftAuctionBeaconProxyAddress);
+        tokenIdToAddress[_nftAddress][_nftTokenId] = NFTAuction(_nftAuctionBeaconProxyAddress);
+
+        return _nftAuctionBeaconProxyAddress;
     }
 
     function closeAuction(address _nftAddress, uint256 _nftTokenId) public {
-        NFTAuctionUUPS auction = tokenIdToAddress[_nftAddress][_nftTokenId];
+        NFTAuction auction = tokenIdToAddress[_nftAddress][_nftTokenId];
         require(
-            auction.auctionStatus() == NFTAuctionUUPS.AuctionStatus.OPEN,
+            auction.auctionStatus() == NFTAuction.AuctionStatus.OPEN,
             "Auction is not open"
         );
         require(
@@ -115,8 +103,4 @@ contract NFTAuctionFactoryUUPS is Initializable,UUPSUpgradeable, OwnableUpgradea
     function _authorizeUpgrade(
         address newImplementation
     ) internal override onlyOwner {}
-
-    function testUpgrade() public pure returns (string memory) {
-        return "success";
-    }
 }

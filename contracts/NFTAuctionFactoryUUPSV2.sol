@@ -3,18 +3,25 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
+// 支持UUPS
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./NFTAuction.sol";
 import "./OnePieceNFT.sol";
 
-contract NFTAuctionFactoryV2 is Initializable {
+contract NFTAuctionFactoryUUPSV2 is
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable
+{
     address[] public auctions;
     mapping(address => mapping(uint256 => NFTAuction)) public tokenIdToAddress;
 
     uint256 public nextAuctionId;
-    address public nftAuctionImplementation;
+  
 
-    function initialize(address _nftAuctionImplementation) public initializer {
-        nftAuctionImplementation = _nftAuctionImplementation;
+    function initialize() public initializer {
+        __Ownable_init(msg.sender);
     }
 
     function createAuction(
@@ -23,7 +30,8 @@ contract NFTAuctionFactoryV2 is Initializable {
         uint256 _reservePrice,
         uint256 _duration,
         NFTAuction.PaymentCurrency _paymentCurrency,
-        address _erc20Token
+        address _erc20Token,
+        address _nftAuctionBeaconProxyAddress
     ) public returns (address) {
         require(_reservePrice > 0, "Reserve price must be greater than zero");
         require(
@@ -46,24 +54,8 @@ contract NFTAuctionFactoryV2 is Initializable {
             "Auction for this NFT already exists"
         );
 
-        // NFTAuction auction = new NFTAuction(
-        //     _nftTokenId,
-        //     _nftAddress,
-        //     msg.sender,
-        //     _duration, // 24 hours
-        //     _reservePrice,
-        //     _paymentCurrency,
-        //     _erc20Token,
-        //     address(this)
-        // );
-        // auctions.push(address(auction));
-        // tokenIdToAddress[_nftAddress][_nftTokenId] = auction;
-        // return address(auction);
-
-        address auctionProxy = Clones.clone(nftAuctionImplementation);
-
         // 初始化代理合约
-        NFTAuction(auctionProxy).initialize(
+        NFTAuction(_nftAuctionBeaconProxyAddress).setData(
             _nftTokenId,
             _nftAddress,
             msg.sender,
@@ -74,10 +66,10 @@ contract NFTAuctionFactoryV2 is Initializable {
             address(this)
         );
 
-        auctions.push(auctionProxy);
-        tokenIdToAddress[_nftAddress][_nftTokenId] = NFTAuction(auctionProxy);
+        auctions.push(_nftAuctionBeaconProxyAddress);
+        tokenIdToAddress[_nftAddress][_nftTokenId] = NFTAuction(_nftAuctionBeaconProxyAddress);
 
-        return auctionProxy;
+        return _nftAuctionBeaconProxyAddress;
     }
 
     function closeAuction(address _nftAddress, uint256 _nftTokenId) public {
@@ -108,7 +100,12 @@ contract NFTAuctionFactoryV2 is Initializable {
         return auctions.length;
     }
 
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
+
+
     function testUpgrade() public pure returns (string memory) {
-        return "success";
+        return "TestFactoryUpgrade";
     }
 }

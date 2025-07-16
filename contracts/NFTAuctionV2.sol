@@ -6,18 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 // 支持合约升级
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-// 支持UUPS
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "./PriceConverter.sol";
 
-import "../PriceConverter.sol";
-
-contract NFTAuctionUUPS is
-    Initializable,
-    ReentrancyGuardUpgradeable,
-    UUPSUpgradeable,
-    OwnableUpgradeable
-{
+contract NFTAuctionV2 is Initializable, ReentrancyGuardUpgradeable {
     enum AuctionStatus {
         OPEN,
         CLOSE,
@@ -50,7 +41,12 @@ contract NFTAuctionUUPS is
     PaymentCurrency paymentCurrency;
     address erc20Token;
 
-    function initialize(
+    function initialize() public initializer {
+        //OpenZeppelin 的 ReentrancyGuardUpgradeable（和其它 Upgradeable 合约）把原来构造函数里的初始化逻辑，全部迁移到了 __ReentrancyGuard_init() 这样的初始化函数里
+        __ReentrancyGuard_init();
+    }
+
+    function setData(
         uint256 _nftTokenId,
         address _nftAddress,
         address _seller,
@@ -59,11 +55,7 @@ contract NFTAuctionUUPS is
         PaymentCurrency _paymentCurrency,
         address _erc20Token,
         address _factoryAddress
-    ) public initializer {
-        //OpenZeppelin 的 ReentrancyGuardUpgradeable（和其它 Upgradeable 合约）把原来构造函数里的初始化逻辑，全部迁移到了 __ReentrancyGuard_init() 这样的初始化函数里
-        __Ownable_init(_factoryAddress);
-        __UUPSUpgradeable_init();
-        __ReentrancyGuard_init();
+    ) public {
         nftTokenId = _nftTokenId;
         nftAddress = _nftAddress;
         seller = _seller;
@@ -148,7 +140,7 @@ contract NFTAuctionUUPS is
         }
     }
 
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyOwner {}
+    function testUpgrade() public pure returns (string memory) {
+        return "testAuctionUpgrade";
+    }
 }
